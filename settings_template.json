@@ -1,0 +1,13 @@
+{
+    // You must delete all of the comments here!!
+    "images_dir": ".",                  // directory with images to send
+    "host": "smtp.example.com",         // smtp server host
+    "port": 465,                        // smtp server port
+    "ssl": true,                        // ssl or tls (opt)
+    "user": "user",                     // your username (opt)
+    "password": "qwerty",               // your password (opt)
+    "from_name": "Sender Name",         // name of the sender
+    "from_email": "sender@example.com", // email of the sender
+    "to_name": "Receiver Name",         // name of the receiver
+    "to_email": "receiver@example.com"  // email of receiver
+}
