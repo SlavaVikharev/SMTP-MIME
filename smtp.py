@@ -16,12 +16,13 @@ class SMTP:
         self.port = port
         self.ssl_ = ssl_
         self.sock = socket.create_connection((self.host, self.port))
-        self.file = self.create_file()
         if self.ssl_:
             self.ssl_wrap()
             self.get_resp()
         else:
+            self.file = self.create_file()
             self.get_resp()
+            self.send('EHLO hello')
             self.send('STARTTLS')
             self.ssl_wrap()
         self.send('EHLO hello')

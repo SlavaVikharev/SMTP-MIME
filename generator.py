@@ -1,13 +1,26 @@
 import os
 import templates as tl
 from b64ext import *
+import random
+import string
 
 
 IMAGES = {'png', 'jpg', 'jpeg', 'bmp', 'tiff'}
 
-BOUNDARY = '---thisIsABoundary:?:'
 
-def gen_parts(dir_, boundary=BOUNDARY, images=IMAGES, **kwargs):
+def randomboundary(length=40):
+    alphabet = string.digits + string.ascii_letters + "'()+_,-./:=?"
+    return ''.join(random.choice(alphabet) for i in range(length)) + ':-:'
+
+
+def generate_boundary(text):
+    boundary = randomboundary()
+    while '--' + boundary in text:
+        boundary = randomboundary()
+    return boundary
+
+
+def gen_parts(dir_, boundary, images=IMAGES, **kwargs):
     parts = []
 
     for file in os.listdir(dir_):
@@ -33,9 +46,13 @@ def gen_parts(dir_, boundary=BOUNDARY, images=IMAGES, **kwargs):
     return '\n'.join(parts)
 
 
-def gen_message(dir_, boundary=BOUNDARY, **kwargs):
-    kwargs['from_name'] = encode_name(kwargs.get('from_name', 'From'))
-    kwargs['to_name'] = encode_name(kwargs.get('to_name', 'To'))
+def gen_message(dir_, **kwargs):
+    user_input = ''.join(filter(lambda x: isinstance(x, str), kwargs.values()))
+
+    boundary = generate_boundary(tl.PART + tl.MESSAGE + user_input)
+
+    kwargs['fromname'] = encode_name(kwargs['fromname'])
+    kwargs['toname'] = encode_name(kwargs['toname'])
 
     parts = gen_parts(dir_, boundary, **kwargs)
     params = {
@@ -43,4 +60,5 @@ def gen_message(dir_, boundary=BOUNDARY, **kwargs):
         'boundary': boundary
     }
     params.update(kwargs)
+
     return tl.MESSAGE % params

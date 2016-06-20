@@ -1,6 +1,6 @@
 MESSAGE = """\
-From: "%(from_name)s" <%(from_email)s>
-To: "%(to_name)s" <%(to_email)s>
+From: "%(fromname)s" <%(fromemail)s>
+To: "%(toname)s" <%(toemail)s>
 Subject: Images
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="%(boundary)s"

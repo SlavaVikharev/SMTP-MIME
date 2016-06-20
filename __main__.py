@@ -1,63 +1,60 @@
 import sys
 import ssl
-import json
 import base64
+import getpass
+import argparse
 from smtp import SMTP
 from b64ext import b64encode_str
 from generator import gen_message
 
 
-def check_settings(settings):
-    return ('images_dir' in settings and
-            'host' in settings and
-            'port' in settings and
-            'from_name' in settings and 
-            'from_email' in settings and
-            'to_name' in settings and
-            'to_email' in settings)
+parser = argparse.ArgumentParser()
+parser.add_argument('host', type=str,
+                    help='SMTP server host')
+parser.add_argument('port', type=int,
+                    help='SMTP server port')
+parser.add_argument('--ssl', action='store_true',
+                    help='Use ssl')
+parser.add_argument('--auth', action='store_true',
+                    help='Use authorization')
+parser.add_argument('--fromname', type=str, default='From',
+                    help='Sender name')
+parser.add_argument('--fromemail', type=str, default='a@a.com',
+                    help='youremail@example.com')
+parser.add_argument('--toname', type=str, default='To',
+                    help='Receiver name')
+parser.add_argument('toemail', type=str,
+                    help='Receiver email')
+parser.add_argument('--dir', type=str, default='.',
+                    help='Directory with images')
+args = parser.parse_args()
 
 
-SETTINGS_FILENAME = 'settings.json'
+message = gen_message(args.dir, **args.__dict__)
+
 
 try:
-    with open(SETTINGS_FILENAME) as f:
-        settings = json.load(f)
-except OSError:
-    print('Cannot find %s' % SETTINGS_FILENAME)
-    sys.exit()
-except json.JSONDecodeError:
-    print('%s is not valid' % SETTINGS_FILENAME)
-    sys.exit()
-
-if not check_settings(settings):
-    print('Incorrect settings, please fix it, there is a template')
-    sys.exit()
-
-message = gen_message(settings['images_dir'], **settings)
-
-host, port = settings['host'], settings['port']
-
-try:
-    smtp = SMTP(host, port, settings.get('ssl', False))
+    smtp = SMTP(args.host, args.port, args.ssl)
 except ssl.SSLError as e:
     print('Check smtp port and ssl bool')
     sys.exit()
 
 try:
-    if 'user' in settings:
+    if args.auth:
         smtp.send('AUTH LOGIN')
+        user = input('Your username:\n')
+        passw = getpass.getpass('Your password:\n')
 
-        smtp.send(b64encode_str(settings['user']), log_=False)
-        smtp.send(b64encode_str(settings.get('password', '')), log_=False)
+        smtp.send(b64encode_str(user), log_=False)
+        smtp.send(b64encode_str(passw), log_=False)
 
-    smtp.send('MAIL FROM: <%s>' % settings['from_email'])
-    smtp.send('RCPT TO: <%s>' % settings['to_email'])
+    smtp.send('MAIL FROM: <%s>' % args.fromemail)
+    smtp.send('RCPT TO: <%s>' % args.toemail)
 
     smtp.send('DATA')
-
     smtp.send(message, log_=False)
 except ConnectionError as e:
-    print('The error was occured!')
+    print('\nThe error has been occured!')
     print(e)
 finally:
     try:
