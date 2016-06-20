@@ -51,9 +51,6 @@ def gen_message(dir_, **kwargs):
 
     boundary = generate_boundary(tl.PART + tl.MESSAGE + user_input)
 
-    kwargs['fromname'] = encode_name(kwargs['fromname'])
-    kwargs['toname'] = encode_name(kwargs['toname'])
-
     parts = gen_parts(dir_, boundary, **kwargs)
     params = {
         'parts': parts,

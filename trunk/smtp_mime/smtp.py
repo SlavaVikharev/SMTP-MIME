@@ -25,7 +25,10 @@ class SMTP:
             self.send('EHLO hello')
             self.send('STARTTLS')
             self.ssl_wrap()
-        self.send('EHLO hello')
+
+        welcome = self.send('EHLO hello')
+        self.eightbitmime = '8BITMIME' in welcome
+        self.pipelining = 'PIPELINING' in welcome
 
     def ssl_wrap(self):
         self.sock = ssl.wrap_socket(self.sock)

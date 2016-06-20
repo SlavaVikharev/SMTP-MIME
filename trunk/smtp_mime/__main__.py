@@ -4,7 +4,7 @@ import base64
 import getpass
 import argparse
 from smtp import SMTP
-from b64ext import b64encode_str
+from b64ext import *
 from generator import gen_message
 
 
@@ -30,29 +30,47 @@ parser.add_argument('--dir', type=str, default='.',
 args = parser.parse_args()
 
 
-message = gen_message(args.dir, **args.__dict__)
-
-
 try:
     smtp = SMTP(args.host, args.port, args.ssl)
 except ssl.SSLError as e:
     print('Check smtp port and ssl bool')
     sys.exit()
 
+if not smtp.eightbitmime:
+    args.fromname = encode_name(args.fromname)
+    args.toname = encode_name(args.toname)
+
+message = gen_message(args.dir, **args.__dict__)
+
 try:
+    to_send_parts = []
+
     if args.auth:
-        smtp.send('AUTH LOGIN')
+        to_send_parts.append(('AUTH LOGIN', True))
         user = input('Your username:\n')
         passw = getpass.getpass('Your password:\n')
 
-        smtp.send(b64encode_str(user), log_=False)
-        smtp.send(b64encode_str(passw), log_=False)
+        user = b64encode_str(user)
+        passw = b64encode_str(passw)
 
-    smtp.send('MAIL FROM: <%s>' % args.fromemail)
-    smtp.send('RCPT TO: <%s>' % args.toemail)
+        to_send_parts.append((user, False))
+        to_send_parts.append((passw, False))
 
-    smtp.send('DATA')
+    to_send_parts.append(('MAIL FROM: <%s>' % args.fromemail, True))
+    to_send_parts.append(('RCPT TO: <%s>' % args.toemail, True))
+
+    to_send_parts.append(('DATA', True))
+
+    if smtp.pipelining:
+        lam = lambda p: p[0]
+        to_send = '\r\n'.join(map(lam, to_send_parts))
+        smtp.send(to_send)
+    else:
+        lam = lambda p: smtp.send(p[0], log_=p[1])
+        list(map(lam, to_send_parts))
+
     smtp.send(message, log_=False)
+
 except ConnectionError as e:
     print('\nThe error has been occured!')
     print(e)
