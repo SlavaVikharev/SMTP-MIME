@@ -43,7 +43,7 @@ def gen_parts(dir_, boundary, images=IMAGES, **kwargs):
         part = tl.PART % params
         parts.append(part)
 
-    return '\n'.join(parts)
+    return '\r\n'.join(parts)
 
 
 def gen_message(dir_, **kwargs):

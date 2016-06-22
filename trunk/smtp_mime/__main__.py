@@ -36,7 +36,7 @@ except ssl.SSLError as e:
     print('Check smtp port and ssl bool')
     sys.exit()
 
-if not smtp.eightbitmime:
+if '8bitmime' not in smtp.extensions:
     args.fromname = encode_name(args.fromname)
     args.toname = encode_name(args.toname)
 
@@ -46,29 +46,39 @@ try:
     to_send_parts = []
 
     if args.auth:
-        to_send_parts.append(('AUTH LOGIN', True))
-        user = input('Your username:\n')
-        passw = getpass.getpass('Your password:\n')
+        types = smtp.auth_types
 
-        user = b64encode_str(user)
-        passw = b64encode_str(passw)
+        auth_type = None
 
-        to_send_parts.append((user, False))
-        to_send_parts.append((passw, False))
+        if not (types and ('login' in types or 'plain' in types)):
+            print('WARNING: There is no opportunity to authenticate...')
+        elif 'login' in types:
+            auth_type = 'login'
+        elif 'plain' in types:
+            auth_type = 'plain'
+
+        if auth_type is not None:
+            smtp.send('AUTH %s' % auth_type.upper())
+
+            user = input('Your username:\n')
+            passw = getpass.getpass('Your password:\n')
+
+            user = b64encode_str(user)
+            passw = b64encode_str(passw)
+
+            smtp.send(user, log_=False)
+            smtp.send(passw, log_=False)
 
     to_send_parts.append(('MAIL FROM: <%s>' % args.fromemail, True))
     to_send_parts.append(('RCPT TO: <%s>' % args.toemail, True))
 
-    to_send_parts.append(('DATA', True))
-
-    if smtp.pipelining:
-        lam = lambda p: p[0]
-        to_send = '\r\n'.join(map(lam, to_send_parts))
-        smtp.send(to_send)
+    if 'pipelining' in smtp.extensions:
+        smtp.send_pipelining(to_send_parts)
     else:
         lam = lambda p: smtp.send(p[0], log_=p[1])
         list(map(lam, to_send_parts))
 
+    smtp.send('DATA')
     smtp.send(message, log_=False)
 
 except ConnectionError as e:
