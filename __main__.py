@@ -3,7 +3,7 @@ import ssl
 import base64
 import getpass
 import argparse
-from smtp import SMTP
+from smtp import SMTP, NotSmtpServer
 from b64ext import *
 from generator import gen_message
 
@@ -34,6 +34,9 @@ try:
     smtp = SMTP(args.host, args.port, args.ssl)
 except ssl.SSLError as e:
     print('Check smtp port and ssl bool')
+    sys.exit()
+except NotSmtpServer as e:
+    print(e)
     sys.exit()
 
 if '8bitmime' not in smtp.extensions:

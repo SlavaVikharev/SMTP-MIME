@@ -11,6 +11,9 @@ LF = b'\n'
 CRLF = CR + LF
 
 
+class NotSmtpServer(Exception): pass
+
+
 class SMTP:
     def __init__(self, host, port, ssl_):
         self.host = host
@@ -18,12 +21,17 @@ class SMTP:
         self.ssl_ = ssl_
 
         self.sock = socket.create_connection((self.host, self.port))
+        self.sock.settimeout(2)
         self.make_file()
 
         if self.ssl_:
             self.ssl_wrap()
 
-        self.get_resp()
+        try:
+            self.get_resp()
+        except socket.error:
+            raise NotSmtpServer('%s:%d is not valid smtp server' % (host, port))
+
         self.extensions = self.parse_exts(self.send('EHLO hello'))
         self.auth_types = self.get_auth_types()
 
@@ -38,6 +46,7 @@ class SMTP:
 
     def ssl_wrap(self):
         self.sock = ssl.wrap_socket(self.sock)
+        self.sock.settimeout(2)
         self.make_file()
 
     def parse_exts(self, ehlo_res):
